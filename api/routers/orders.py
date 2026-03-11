@@ -115,7 +115,7 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
                     (ip_address, username, password, country, city, state, zipcode, proxy_type, validation_date, reason)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                     """,
-                    p["ip_address"], p["username"], p["password"], p["country"], p["city"], p["state"], p["zipcode"], p["type"],
+                    p["ip_address"], p["username"], p["password"], p["country"], p["city"], p["state"], p["zipcode"], p["proxy_type"],
                     datetime.now(), "failed validation"
                 )
                 # удаляем из shop
