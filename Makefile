@@ -13,7 +13,7 @@ run:
 	 --name $(CONTAINER_NAME) \
 	 --env-file .env \
 	 -v $(LOGS_DIR):/usr/src/app/logs \
-	 -p 8000:8000 \
+	 -p 8080:8000 \
 	 --restart unless-stopped \
 	 $(IMAGE_NAME)
 
