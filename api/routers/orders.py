@@ -103,7 +103,6 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
                       WHERE o.proxy_id = s.id
                       AND o.user_id = ${user_param_index}
                   )
-                  ORDER BY RANDOM()
                 LIMIT {remaining_qty + 50}
             """
             batch = await conn.fetch(query, *values)
