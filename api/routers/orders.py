@@ -126,7 +126,7 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
     for p in proxies:
         result.append(
             {
-                "ip": p["ip"],
+                "ip": p["ip_address"],
                 "login": p["username"],
                 "password": p["password"],
                 "country": p["country"],
