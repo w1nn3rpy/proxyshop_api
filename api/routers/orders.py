@@ -25,6 +25,8 @@ async def filter_and_validate_proxies(proxies: list[dict], quantity: int) -> (li
     results = await asyncio.gather(*(check_proxy_db(p) for p in proxies))
     working = [p for p, ok in zip(proxies, results) if ok]
     invalid = [p for p, ok in zip(proxies, results) if not ok]
+    for p, ok in results:
+        print(p["ip_address"], ok)
     return working[:quantity], invalid
 
 @router.post(
@@ -102,6 +104,8 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
             if not batch:
                 break  # больше нет подходящих прокси
             batch_dicts = [dict(p) for p in batch]
+
+            print("PROXIES FROM DB:", len(batch_dicts))
 
             working, invalid = await filter_and_validate_proxies(batch_dicts, remaining_qty)
             working_proxies.extend(working)
