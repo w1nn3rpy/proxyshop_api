@@ -103,7 +103,7 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
                     proxy["country"],
                     proxy["city"],
                     proxy["state"],
-                    proxy["type"],
+                    proxy["proxy_type"],
                     proxy["ip"],
                     proxy["login"],
                     proxy["password"],
