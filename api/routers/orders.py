@@ -104,8 +104,8 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
                     proxy["city"],
                     proxy["state"],
                     proxy["proxy_type"],
-                    proxy["ip"],
-                    proxy["login"],
+                    proxy["ip_address"],
+                    proxy["username"],
                     proxy["password"],
                     proxy["zipcode"],
                     price
@@ -127,8 +127,7 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
         result.append(
             {
                 "ip": p["ip"],
-                "port": p["port"],
-                "login": p["login"],
+                "login": p["username"],
                 "password": p["password"],
                 "country": p["country"],
                 "city": p["city"],
