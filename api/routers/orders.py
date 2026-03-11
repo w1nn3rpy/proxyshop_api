@@ -85,6 +85,8 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
 
         desired_qty = order.quantity
         working_proxies = []
+        invalid_proxies = []
+        already_taken_ids = set()
         print('88 строка')
         while len(working_proxies) < desired_qty:
             remaining_qty = desired_qty - len(working_proxies)
@@ -100,7 +102,8 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
                       WHERE o.proxy_id = s.id
                       AND o.user_id = ${user_param_index}
                   )
-                LIMIT {remaining_qty}
+                  ORDER BY RANDOM()
+                LIMIT {remaining_qty * 5}
             """
             batch = await conn.fetch(query, *values)
             print('бачнули')
@@ -109,11 +112,17 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
                 break
 
             batch_dicts = [dict(p) for p in batch]
+            batch_dicts = [p for p in batch_dicts if p["id"] not in already_taken_ids]
+
             print('бач диктс', batch_dicts)
             # Проверяем валидность
-            valid, invalid = await filter_and_validate_proxies(batch_dicts, remaining_qty)
-            print(f'проверяем валидность\nvalid={valid}\ninvalid={invalid}\n')
-            working_proxies.extend(valid)
+            working, invalid = await filter_and_validate_proxies(batch_dicts, remaining_qty)
+            working_proxies.extend(working)
+            invalid_proxies.extend(invalid)
+
+            for p in working:
+                already_taken_ids.add(p["id"])
+
             print('проверили валидность')
             # Перемещаем невалидные в таблицу invalid и удаляем из shop
             for p in invalid:
