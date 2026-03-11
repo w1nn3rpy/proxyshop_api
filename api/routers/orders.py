@@ -16,18 +16,29 @@ async def check_proxy_db(proxy: dict, port: int = 1723, timeout: int = 20) -> bo
     return await ping_port(proxy["ip_address"], port=port, timeout=timeout)
 
 
-async def filter_and_validate_proxies(proxies: list[dict], quantity: int) -> (list[dict], list[dict]):
-    """
-    Проверяет рабочие прокси и возвращает кортеж:
-    ([рабочие], [нерабочие])
-    """
-    # асинхронная проверка
-    results = await asyncio.gather(*(check_proxy_db(p) for p in proxies))
-    working = [p for p, ok in zip(proxies, results) if ok]
-    invalid = [p for p, ok in zip(proxies, results) if not ok]
-    for p, ok in results:
-        print(p["ip_address"], ok)
-    return working[:quantity], invalid
+async def filter_and_validate_proxies(proxies, needed):
+
+    tasks = [
+        ping_port(p["ip_address"], 1723)
+        for p in proxies
+    ]
+
+    results = await asyncio.gather(*tasks)
+
+    working = []
+    invalid = []
+
+    for proxy, ok in zip(proxies, results):
+
+        if ok:
+            working.append(proxy)
+        else:
+            invalid.append(proxy)
+
+        if len(working) >= needed:
+            break
+
+    return working, invalid
 
 @router.post(
     "/orders",
