@@ -103,8 +103,9 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
                     SELECT *
                     FROM shop LIMIT 20 \
                     """
+            batch = await conn.fetch(query)
 
-            batch = await conn.fetch(query, *values)
+            # batch = await conn.fetch(query, *values)
             if not batch:
                 print("NO PROXIES FROM DB")
                 break  # больше нет подходящих прокси
