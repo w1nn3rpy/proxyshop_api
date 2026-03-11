@@ -52,14 +52,14 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
             param_index += 1
 
         query = f"""
-        SELECT p.*
-        FROM proxies p
+        SELECT s.*
+        FROM shop s
         WHERE {" AND ".join(filters)}
 
         AND NOT EXISTS (
             SELECT 1
             FROM api_orders o
-            WHERE o.proxy_id = p.id
+            WHERE o.proxy_id = s.id
             AND o.user_id = ${param_index}
         )
 
