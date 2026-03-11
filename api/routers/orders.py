@@ -95,6 +95,7 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
             query = f"""
                 SELECT s.*
                 FROM shop s
+                TABLESAMPLE SYSTEM (20)
                 WHERE {" AND ".join(filters)}
                   AND NOT EXISTS (
                       SELECT 1
@@ -103,16 +104,20 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
                       AND o.user_id = ${user_param_index}
                   )
                   ORDER BY RANDOM()
-                LIMIT {remaining_qty * 2}
+                LIMIT {remaining_qty + 50}
             """
             batch = await conn.fetch(query, *values)
             print('бачнули')
             if not batch:
-                print('нот бач')
+                print('DB returned nothing')
                 break
 
             batch_dicts = [dict(p) for p in batch]
             batch_dicts = [p for p in batch_dicts if p["id"] not in already_taken_ids]
+
+            if not batch_dicts:
+                print('все прокси уже использованы в этом запросе')
+                break
 
             print('бач диктс', batch_dicts)
             # Проверяем валидность
@@ -126,6 +131,7 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
             print('проверили валидность')
             # Перемещаем невалидные в таблицу invalid и удаляем из shop
             for p in invalid:
+                already_taken_ids.add(p["id"])
                 await conn.execute(
                     """
                     INSERT INTO invalid
