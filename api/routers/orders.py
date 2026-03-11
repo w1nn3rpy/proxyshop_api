@@ -103,7 +103,7 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
                       AND o.user_id = ${user_param_index}
                   )
                   ORDER BY RANDOM()
-                LIMIT {remaining_qty * 5}
+                LIMIT {remaining_qty * 2}
             """
             batch = await conn.fetch(query, *values)
             print('бачнули')
