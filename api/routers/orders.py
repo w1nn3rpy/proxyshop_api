@@ -39,22 +39,25 @@ async def filter_and_validate_proxies(proxies, needed):
 async def create_order(order: OrderCreate, user=Depends(get_api_user)):
 
     pool = await get_pool()
-
+    print('открыли пул')
     # Определяем цену
     price_map = {
         "res": user["res_price"],
         "def": user["def_price"],
         "nondef": user["nondef_price"]
     }
-
+    print('определили цену')
     if order.type not in price_map:
         raise HTTPException(400, "Invalid proxy type")
 
     price = price_map[order.type]
+    print('price = ', price)
     total_price = price * order.quantity
+    print('total_price = ', total_price)
 
     if user["balance"] < total_price:
         raise HTTPException(400, "Insufficient balance")
+    print('баланс норм')
 
     async with pool.acquire() as conn:
 
@@ -62,7 +65,7 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
         filters = ["s.country = $1", "s.proxy_type = $2"]
         values = [order.country, order.type]
         param_index = 3
-
+        print('сформировали фильтры')
         if order.city:
             filters.append(f"s.city = ${param_index}")
             values.append(order.city)
@@ -78,13 +81,14 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
 
         user_param_index = param_index
         values.append(user["user_id"])
+        print('84 строка')
 
         desired_qty = order.quantity
         working_proxies = []
-
+        print('88 строка')
         while len(working_proxies) < desired_qty:
             remaining_qty = desired_qty - len(working_proxies)
-
+            print('91 строка')
             # Берем только прокси с фильтрами и которые ещё не куплены пользователем
             query = f"""
                 SELECT s.*
@@ -99,16 +103,18 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
                 LIMIT {remaining_qty}
             """
             batch = await conn.fetch(query, *values)
+            print('бачнули')
             if not batch:
+                print('нот бач')
                 break
 
             batch_dicts = [dict(p) for p in batch]
-
+            print('бач диктс', batch_dicts)
             # Проверяем валидность
             valid, invalid = await filter_and_validate_proxies(batch_dicts, remaining_qty)
-
+            print(f'проверяем валидность\nvalid={valid}\ninvalid={invalid}\n')
             working_proxies.extend(valid)
-
+            print('проверили валидность')
             # Перемещаем невалидные в таблицу invalid и удаляем из shop
             for p in invalid:
                 await conn.execute(
@@ -124,6 +130,7 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
                 await conn.execute("DELETE FROM shop WHERE id = $1", p["id"])
 
         if len(working_proxies) < desired_qty:
+            print('len working < desired')
             raise HTTPException(
                 400,
                 f"Only {len(working_proxies)} working proxies available"
