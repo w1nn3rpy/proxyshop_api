@@ -31,23 +31,23 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
 
     async with pool.acquire() as conn:
 
-        filters = ["p.country = $1", "p.type = $2"]
+        filters = ["s.country = $1", "s.type = $2"]
         values = [order.country, order.type]
 
         param_index = 3
 
         if order.city:
-            filters.append(f"p.city = ${param_index}")
+            filters.append(f"s.city = ${param_index}")
             values.append(order.city)
             param_index += 1
 
         if order.state:
-            filters.append(f"p.state = ${param_index}")
+            filters.append(f"s.state = ${param_index}")
             values.append(order.state)
             param_index += 1
 
         if order.zip:
-            filters.append(f"p.zipcode = ${param_index}")
+            filters.append(f"s.zipcode = ${param_index}")
             values.append(order.zip)
             param_index += 1
 
