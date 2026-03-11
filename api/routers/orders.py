@@ -12,13 +12,13 @@ router = APIRouter(prefix="/api")
 
 async def filter_and_validate_proxies(proxies, needed):
     """
-    Проверяем список прокси через ping_port.
-    Возвращает (валидные, невалидные)
+    Проверка списка прокси. Возвращает кортеж (валидные, невалидные)
     """
     tasks = [ping_port(p["ip_address"], 1723) for p in proxies]
     results = await asyncio.gather(*tasks)
 
-    working, invalid = [], []
+    working = []
+    invalid = []
 
     for proxy, ok in zip(proxies, results):
         if ok:
@@ -46,6 +46,7 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
         "def": user["def_price"],
         "nondef": user["nondef_price"]
     }
+
     if order.type not in price_map:
         raise HTTPException(400, "Invalid proxy type")
 
@@ -57,7 +58,7 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
 
     async with pool.acquire() as conn:
 
-        # Формируем фильтры для SQL
+        # Формируем фильтры
         filters = ["s.country = $1", "s.proxy_type = $2"]
         values = [order.country, order.type]
         param_index = 3
@@ -75,16 +76,16 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
             values.append(order.zip)
             param_index += 1
 
-        # Параметр для NOT EXISTS (уникальные прокси для пользователя)
         user_param_index = param_index
         values.append(user["user_id"])
 
         desired_qty = order.quantity
-        working_proxies, invalid_proxies = [], []
+        working_proxies = []
 
         while len(working_proxies) < desired_qty:
             remaining_qty = desired_qty - len(working_proxies)
 
+            # Берем только прокси с фильтрами и которые ещё не куплены пользователем
             query = f"""
                 SELECT s.*
                 FROM shop s
@@ -99,22 +100,22 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
             """
             batch = await conn.fetch(query, *values)
             if not batch:
-                break  # больше нет подходящих прокси
+                break
 
             batch_dicts = [dict(p) for p in batch]
 
-            # Проверяем прокси
-            working, invalid = await filter_and_validate_proxies(batch_dicts, remaining_qty)
-            working_proxies.extend(working)
-            invalid_proxies.extend(invalid)
+            # Проверяем валидность
+            valid, invalid = await filter_and_validate_proxies(batch_dicts, remaining_qty)
 
-            # Перемещаем невалидные в invalid
+            working_proxies.extend(valid)
+
+            # Перемещаем невалидные в таблицу invalid и удаляем из shop
             for p in invalid:
                 await conn.execute(
                     """
                     INSERT INTO invalid
                     (id, ip_address, username, password, country, city, state, zipcode, proxy_type, price, validation_date, reason)
-                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                     """,
                     p["id"], p["ip_address"], p["username"], p["password"],
                     p["country"], p["city"], p["state"], p["zipcode"],
@@ -128,27 +129,31 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
                 f"Only {len(working_proxies)} working proxies available"
             )
 
-        # Вставляем валидные прокси в api_orders и списываем баланс
+        # Создаем заказы и списываем баланс
         async with conn.transaction():
-            for p in working_proxies:
+            for proxy in working_proxies:
                 await conn.execute(
                     """
                     INSERT INTO api_orders
                     (user_id, proxy_id, country, city, state, proxy_type, ip_address, username, password, zipcode, price)
                     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
                     """,
-                    user["user_id"], p["id"], p["country"], p["city"], p["state"],
-                    p["proxy_type"], p["ip_address"], p["username"], p["password"],
-                    p["zipcode"], price
+                    user["user_id"],
+                    proxy["id"],
+                    proxy["country"],
+                    proxy["city"],
+                    proxy["state"],
+                    proxy["proxy_type"],
+                    proxy["ip_address"],
+                    proxy["username"],
+                    proxy["password"],
+                    proxy["zipcode"],
+                    price
                 )
-
             await conn.execute(
-                """
-                UPDATE api_users
-                SET balance = balance - $1
-                WHERE user_id=$2
-                """,
-                total_price, user["user_id"]
+                "UPDATE api_users SET balance = balance - $1 WHERE user_id=$2",
+                total_price,
+                user["user_id"]
             )
 
     result = [
