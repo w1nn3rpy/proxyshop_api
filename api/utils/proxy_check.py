@@ -20,9 +20,11 @@ async def ping_port(ip: str, port: int = 1723, timeout: int = 20) -> bool:
         if "open" in output:
             return True
         else:
+            print(output)
             return False
 
-    except Exception:
+    except Exception as e:
+        print(f"Error with ping trough nmap: {str(e)}")
         return False
 
 async def check_proxy(proxy: dict, port: int = 1723, timeout: int = 20) -> bool:
@@ -36,7 +38,7 @@ async def check_proxy(proxy: dict, port: int = 1723, timeout: int = 20) -> bool:
         ...
     }
     """
-    return await ping_port(proxy["ip"], proxy.get("port", port), timeout)
+    return await ping_port(proxy["ip_address"], port, timeout)
 
 async def filter_working_proxies(proxies: list[dict], max_checks: int = None) -> list[dict]:
     """
