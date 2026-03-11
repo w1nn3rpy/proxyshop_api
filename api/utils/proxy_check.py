@@ -17,7 +17,7 @@ async def ping_port(ip: str, port: int = 1723, timeout: int = 20) -> bool:
         stdout, stderr = await proc.communicate()
         output = stdout.decode()
         # Проверяем статус порта в выводе nmap
-        if f"{port}/tcp open" in output:
+        if "open" in output:
             return True
         else:
             return False
