@@ -13,7 +13,7 @@ async def check_proxy_db(proxy: dict, port: int = 1723, timeout: int = 20) -> bo
     """
     Проверяет прокси через TCP.
     """
-    return await ping_port(proxy["ip"], proxy.get("port", port), timeout)
+    return await ping_port(proxy["ip_address"], port=port, timeout=timeout)
 
 
 async def filter_and_validate_proxies(proxies: list[dict], quantity: int) -> (list[dict], list[dict]):
