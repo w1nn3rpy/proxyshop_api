@@ -15,6 +15,7 @@ async def get_api_user(api_key: str = Depends(api_key_header)):
             SELECT *
             FROM api_users
             WHERE api_key=$1
+            AND status='active'
             """,
             api_key
         )
