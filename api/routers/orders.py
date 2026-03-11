@@ -85,23 +85,28 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
         while len(working_proxies) < desired_qty:
             remaining_qty = desired_qty - len(working_proxies)
 
-            query = f"""
-            SELECT s.*
-            FROM shop s
-            WHERE {" AND ".join(filters)}
-    
-            AND NOT EXISTS (
-                SELECT 1
-                FROM api_orders o
-                WHERE o.proxy_id = s.id
-                AND o.user_id = ${user_param_index}
-            )
-    
-            LIMIT {remaining_qty}
-            """
+            # query = f"""
+            # SELECT s.*
+            # FROM shop s
+            # WHERE {" AND ".join(filters)}
+            #
+            # AND NOT EXISTS (
+            #     SELECT 1
+            #     FROM api_orders o
+            #     WHERE o.proxy_id = s.id
+            #     AND o.user_id = ${user_param_index}
+            # )
+            #
+            # LIMIT {remaining_qty}
+            # """
+            query = """
+                    SELECT *
+                    FROM shop LIMIT 20 \
+                    """
 
             batch = await conn.fetch(query, *values)
             if not batch:
+                print("NO PROXIES FROM DB")
                 break  # больше нет подходящих прокси
             batch_dicts = [dict(p) for p in batch]
 
