@@ -31,7 +31,7 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
 
     async with pool.acquire() as conn:
 
-        filters = ["s.country = $1", "s.type = $2"]
+        filters = ["s.country = $1", "s.proxy_type = $2"]
         values = [order.country, order.type]
 
         param_index = 3
