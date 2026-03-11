@@ -112,11 +112,11 @@ async def create_order(order: OrderCreate, user=Depends(get_api_user)):
                 await conn.execute(
                     """
                     INSERT INTO invalid
-                    (id, ip_address, username, password, country, city, state, zipcode, proxy_type, validation_date, reason)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                    (id, ip_address, username, password, country, city, state, zipcode, proxy_type, price, validation_date, reason)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                     """,
                     p["id"], p["ip_address"], p["username"], p["password"], p["country"], p["city"], p["state"], p["zipcode"], p["proxy_type"],
-                    datetime.now(), "failed validation"
+                    price, datetime.now(), "failed validation"
                 )
                 # удаляем из shop
                 await conn.execute("DELETE FROM shop WHERE id = $1", p["id"])
